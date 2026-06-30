@@ -8,7 +8,527 @@
 <!-- ZXing: funciona en iPhone Safari -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/zxing.min.js"></script>
 <!-- SheetJS para generar Excel real .xlsx -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https:/<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ScanBase QR</title>
+
+<!-- html5-qrcode: mejor compatibilidad con iPhone Safari -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- SheetJS para Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg:     #090b0f;
+    --bg2:    #0f1218;
+    --bg3:    #161b24;
+    --border: #1e2530;
+    --cyan:   #00e5c0;
+    --cyan2:  #00b89a;
+    --text:   #dde3ee;
+    --muted:  #5a6478;
+    --red:    #ff4f5e;
+    --green:  #00c97a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--bg); position: sticky; top: 0; z-index: 50;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--cyan), #0af);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; color: #000; }
+  .logo-text { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 17px; color: #fff; }
+  #counter {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--cyan); background: #001f18; border: 1px solid #00e5c020;
+    padding: 4px 12px; border-radius: 20px;
+  }
+
+  nav {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--bg); position: sticky; top: 65px; z-index: 40;
+  }
+  .tab {
+    flex: 1; padding: 13px 10px; border: none; background: none;
+    color: var(--muted); font-size: 13px; font-family: 'Inter', sans-serif;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 6px; position: relative; transition: color .2s;
+  }
+  .tab.active { color: var(--cyan); }
+  .tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--cyan); border-radius: 2px 2px 0 0;
+  }
+  .tab svg { width: 16px; height: 16px; }
+
+  main { padding: 20px; max-width: 640px; width: 100%; margin: 0 auto; }
+
+  .panel { display: none; flex-direction: column; gap: 18px; }
+  .panel.active { display: flex; }
+
+  /* Visor cámara — html5-qrcode inyecta su propio video aquí */
+  #reader {
+    width: 100%; border-radius: 14px; overflow: hidden;
+    background: var(--bg2); border: 1px solid var(--border);
+    min-height: 260px;
+  }
+  /* Ocultar UI fea de html5-qrcode */
+  #reader img, #reader select, #reader__dashboard_section_swaplink { display: none !important; }
+  #reader__scan_region { border-radius: 12px; overflow: hidden; }
+  #reader__dashboard { padding: 8px 0 0; }
+  #reader__dashboard_section_csr span { color: var(--muted) !important; font-size: 12px !important; font-family: 'JetBrains Mono', monospace !important; }
+  #reader__status_span { color: var(--cyan) !important; font-size: 11px !important; font-family: 'JetBrains Mono', monospace !important; }
+
+  label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 5px; }
+  input, select {
+    width: 100%; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px; color: var(--text);
+    font-size: 13px; font-family: 'JetBrains Mono', monospace;
+    transition: border-color .2s; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--cyan); }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 18px; border-radius: 10px; border: none;
+    font-size: 14px; font-family: 'Inter', sans-serif; font-weight: 600;
+    cursor: pointer; transition: all .15s; width: 100%;
+  }
+  .btn svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .btn-primary   { background: var(--cyan); color: #000; }
+  .btn-primary:active { background: var(--cyan2); }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger    { background: #2a1015; color: var(--red); border: 1px solid #ff4f5e30; }
+  .btn-green     { background: #001a10; color: var(--green); border: 1px solid #00c97a30; }
+  .btn-sm        { padding: 9px 14px; font-size: 12px; width: auto; border-radius: 8px; }
+
+  .divider { text-align: center; font-size: 11px; color: #2a3040; font-family: 'JetBrains Mono', monospace; }
+
+  #last-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; display: none;
+    animation: fadeUp .3s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .last-title { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; margin-bottom: 6px; }
+  .last-code  { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--cyan); word-break: break-all; margin-bottom: 8px; }
+  .last-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: 10px; background: #001f18; color: var(--cyan); border: 1px solid #00e5c015; padding: 3px 9px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; }
+  .ts   { font-size: 10px; color: #333; font-family: 'JetBrains Mono', monospace; margin-left: auto; }
+
+  .db-toolbar { display: flex; gap: 10px; align-items: center; }
+  .db-toolbar input { flex: 1; }
+  #db-count { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  #table-wrap { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .table-head {
+    display: flex; gap: 8px; padding: 9px 14px;
+    font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase; letter-spacing: .5px;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  .record {
+    display: flex; gap: 8px; padding: 12px 14px;
+    background: var(--bg); border-bottom: 1px solid #0d1018;
+    align-items: flex-start; animation: slideIn .2s ease both;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-5px); } to { opacity:1; transform:translateX(0); } }
+  .record:last-child { border-bottom: none; }
+  .col-code { flex: 3; }
+  .col-cat  { flex: 1.2; }
+  .col-date { flex: 2; }
+  .col-del  { flex: none; width: 32px; display: flex; align-items: center; justify-content: center; }
+  .rec-code { font-family: 'JetBrains Mono', monospace; font-size: 12px; word-break: break-all; }
+  .rec-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rec-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #333; }
+  .del-btn  { background: none; border: none; color: #2a3040; cursor: pointer; padding: 4px; border-radius: 6px; }
+  .del-btn svg { width: 15px; height: 15px; }
+
+  #empty-state { padding: 50px 20px; text-align: center; color: var(--muted); font-size: 14px; display: none; flex-direction: column; align-items: center; gap: 10px; }
+  #empty-state svg { width: 40px; height: 40px; opacity: .2; }
+
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    padding: 12px 22px; border-radius: 10px; font-size: 13px;
+    font-family: 'JetBrains Mono', monospace; z-index: 200;
+    opacity: 0; transition: opacity .25s; pointer-events: none;
+    white-space: nowrap; max-width: 90vw; text-align: center; border: 1px solid;
+  }
+  #toast.show { opacity: 1; }
+  #toast.ok  { background: #0a1f18; border-color: var(--green); color: var(--green); }
+  #toast.err { background: #1f0a0d; border-color: var(--red);   color: var(--red); }
+
+  @media (max-width: 400px) { .col-date { display: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <line x1="7" y1="12" x2="17" y2="12"/>
+      </svg>
+    </div>
+    <span class="logo-text">ScanBase</span>
+  </div>
+  <div id="counter">0 registros</div>
+</header>
+
+<nav>
+  <button class="tab active" onclick="switchTab('scan')" id="tab-scan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/>
+    </svg>
+    Escanear
+  </button>
+  <button class="tab" onclick="switchTab('db')" id="tab-db">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>
+    Base de Datos
+  </button>
+</nav>
+
+<main>
+
+  <!-- PANEL ESCANEAR -->
+  <div class="panel active" id="panel-scan">
+
+    <!-- html5-qrcode monta aquí el visor -->
+    <div id="reader"></div>
+
+    <!-- Botón arrancar/detener -->
+    <button class="btn btn-primary" id="btn-cam" onclick="toggleCamera()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      Activar Cámara
+    </button>
+
+    <div class="divider">— o ingresa el código manualmente —</div>
+
+    <div>
+      <label>Código (QR / Barras / Texto)</label>
+      <input type="text" id="inp-code" placeholder="Pega o escribe el código…">
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Categoría</label>
+        <select id="inp-cat">
+          <option>General</option>
+          <option>Producto</option>
+          <option>Inventario</option>
+          <option>Activo</option>
+          <option>Documento</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div>
+        <label>Nota (opcional)</label>
+        <input type="text" id="inp-note" placeholder="Descripción…">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="registerManual()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Registrar en Base de Datos
+    </button>
+
+    <div id="last-card">
+      <div class="last-title">✓ Último registrado</div>
+      <div class="last-code" id="last-code">—</div>
+      <div class="last-meta">
+        <span class="chip" id="last-cat">—</span>
+        <span class="ts" id="last-ts">—</span>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#5a6478;" id="last-note"></div>
+    </div>
+
+  </div>
+
+  <!-- PANEL BASE DE DATOS -->
+  <div class="panel" id="panel-db">
+
+    <div class="db-toolbar">
+      <input type="text" id="search-inp" placeholder="Buscar por código, nota, categoría…" oninput="renderTable()">
+      <button class="btn btn-green btn-sm" onclick="exportExcel()" style="width:auto;white-space:nowrap;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Excel
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="clearAll()" style="width:auto;white-space:nowrap;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        Limpiar
+      </button>
+    </div>
+
+    <div id="db-count">0 registros</div>
+
+    <div id="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <p>Sin registros aún.</p>
+      <p style="font-size:11px;opacity:.5;">Escanea o ingresa un código para empezar.</p>
+    </div>
+
+    <div id="table-wrap" style="display:none;">
+      <div class="table-head">
+        <div class="col-code">Código / Nota</div>
+        <div class="col-cat">Categoría</div>
+        <div class="col-date">Fecha</div>
+        <div class="col-del"></div>
+      </div>
+      <div id="records-body"></div>
+    </div>
+
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── Estado ──────────────────────────────────────────────
+const DB_KEY = 'scanbase_v3';
+let records = [];
+let html5QrCode = null;
+let cameraOn = false;
+let cooldown = false;
+
+// ── Persistencia ────────────────────────────────────────
+function loadDB() {
+  try { records = JSON.parse(localStorage.getItem(DB_KEY)) || []; }
+  catch { records = []; }
+}
+function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(records)); }
+
+// ── Tabs ────────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + t).classList.add('active');
+  document.getElementById('tab-' + t).classList.add('active');
+  if (t === 'db') renderTable();
+}
+
+// ── Cámara con html5-qrcode ─────────────────────────────
+async function toggleCamera() {
+  if (cameraOn) {
+    await stopCamera();
+  } else {
+    await startCamera();
+  }
+}
+
+async function startCamera() {
+  try {
+    html5QrCode = new Html5Qrcode("reader");
+
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.333,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+    };
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText, decodedResult) => {
+        if (!cooldown) {
+          cooldown = true;
+          const cat = document.getElementById('inp-cat').value;
+          addRecord(decodedText, cat, 'Escaneado con cámara');
+          setTimeout(() => { cooldown = false; }, 2500);
+        }
+      },
+      (errorMsg) => { /* ignorar errores de frame */ }
+    );
+
+    cameraOn = true;
+    document.getElementById('btn-cam').innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8"/><path d="M7.5 4H21a2 2 0 0 1 2 2v11"/></svg>
+      Detener Cámara`;
+
+  } catch(e) {
+    let msg = 'No se pudo acceder a la cámara.';
+    if (e && e.toString().includes('Permission')) msg = 'Permiso de cámara denegado. Ve a Ajustes > Safari > Cámara.';
+    showToast(msg, 'err');
+    console.error(e);
+  }
+}
+
+async function stopCamera() {
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); await html5QrCode.clear(); } catch {}
+    html5QrCode = null;
+  }
+  cameraOn = false;
+  document.getElementById('btn-cam').innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+    Activar Cámara`;
+}
+
+// ── Registro ────────────────────────────────────────────
+function registerManual() {
+  const code = document.getElementById('inp-code').value.trim();
+  if (!code) { showToast('El código no puede estar vacío', 'err'); return; }
+  const cat  = document.getElementById('inp-cat').value;
+  const note = document.getElementById('inp-note').value.trim();
+  addRecord(code, cat, note);
+  document.getElementById('inp-code').value = '';
+  document.getElementById('inp-note').value = '';
+}
+
+function addRecord(code, category, note) {
+  const rec = {
+    id: Date.now().toString() + Math.random().toString(36).slice(2,5),
+    code, category, note,
+    timestamp: new Date().toISOString(),
+  };
+  records.unshift(rec);
+  saveDB();
+  updateCounter();
+  showLastCard(rec);
+  showToast('✓ Registrado correctamente', 'ok');
+}
+
+function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  saveDB(); updateCounter(); renderTable();
+}
+
+function clearAll() {
+  if (!confirm('¿Eliminar todos los registros?')) return;
+  records = []; saveDB(); updateCounter(); renderTable();
+  document.getElementById('last-card').style.display = 'none';
+  showToast('Base de datos limpiada', 'ok');
+}
+
+// ── UI ──────────────────────────────────────────────────
+function updateCounter() {
+  document.getElementById('counter').textContent = `${records.length} registro${records.length !== 1 ? 's' : ''}`;
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function showLastCard(rec) {
+  document.getElementById('last-card').style.display = 'block';
+  document.getElementById('last-code').textContent = rec.code;
+  document.getElementById('last-cat').textContent  = rec.category;
+  document.getElementById('last-ts').textContent   = formatDate(rec.timestamp);
+  document.getElementById('last-note').textContent = rec.note || '';
+}
+
+// ── Tabla ────────────────────────────────────────────────
+function renderTable() {
+  const q = (document.getElementById('search-inp').value || '').toLowerCase();
+  const filtered = records.filter(r =>
+    r.code.toLowerCase().includes(q) ||
+    (r.note||'').toLowerCase().includes(q) ||
+    r.category.toLowerCase().includes(q)
+  );
+  const body  = document.getElementById('records-body');
+  const empty = document.getElementById('empty-state');
+  const wrap  = document.getElementById('table-wrap');
+
+  document.getElementById('db-count').textContent = `${filtered.length} de ${records.length} registros`;
+
+  if (filtered.length === 0) {
+    wrap.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display  = 'flex';
+
+  body.innerHTML = filtered.map((r, i) => `
+    <div class="record" style="animation-delay:${i*20}ms">
+      <div class="col-code">
+        <div class="rec-code">${esc(r.code.length>50 ? r.code.slice(0,50)+'…' : r.code)}</div>
+        ${r.note ? `<div class="rec-note">${esc(r.note)}</div>` : ''}
+      </div>
+      <div class="col-cat"><span class="chip">${esc(r.category)}</span></div>
+      <div class="col-date"><div class="rec-date">${formatDate(r.timestamp)}</div></div>
+      <div class="col-del">
+        <button class="del-btn" onclick="deleteRecord('${r.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Excel ────────────────────────────────────────────────
+function exportExcel() {
+  if (records.length === 0) { showToast('No hay registros para exportar', 'err'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  const rows = records.map((r, i) => ({
+    'N°':        i + 1,
+    'Código':    r.code,
+    'Categoría': r.category,
+    'Nota':      r.note || '',
+    'Fecha':     formatDate(r.timestamp),
+    'Timestamp': r.timestamp,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch:4 },{ wch:45 },{ wch:14 },{ wch:25 },{ wch:22 },{ wch:26 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+
+  // Hoja resumen por categoría
+  const catMap = {};
+  records.forEach(r => { catMap[r.category] = (catMap[r.category]||0) + 1; });
+  const ws2 = XLSX.utils.json_to_sheet(
+    Object.entries(catMap).map(([c,n]) => ({ Categoría:c, Total:n, '%': ((n/records.length)*100).toFixed(1)+'%' }))
+  );
+  ws2['!cols'] = [{ wch:16 },{ wch:8 },{ wch:10 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+
+  XLSX.writeFile(wb, `ScanBase_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast(`✓ Excel descargado (${records.length} registros)`, 'ok');
+}
+
+// ── Toast ────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ── Init ─────────────────────────────────────────────────
+loadDB();
+updateCounter();
+if (records.length > 0) showLastCard(records[0]);
+</script>
+</body>
+</html>
+/cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
